@@ -1,7 +1,9 @@
 from dash import html, dcc, Output, Input, callback
 import dash_bootstrap_components as dbc
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 
 # Map months to their names
 month_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun", 
@@ -112,7 +114,7 @@ home_layout = html.Div([
             html.Div(
                 style={
                     'flex': '1',  # Take up equal space
-                    'backgroundColor': '#e0e0e0',  # Slightly darker gray background
+                    'backgroundColor': '#f0f0f0',  # Slightly darker gray background
                     'padding': '20px',  # Padding inside the section
                     'display': 'flex',
                     'justifyContent': 'space-between',
@@ -122,6 +124,50 @@ home_layout = html.Div([
                 children=[
                     html.H2("Traffic Density Graph"),
                     dcc.Graph(id="bar-graph")
+                ]
+            )
+        ]
+    ),
+    html.Div(
+        style={
+            'display': 'flex',  # Flexbox for the inner container
+            'flexDirection': 'row',  # Horizontal layout
+            'height': '66vh', 
+            'gap': '10px',     # Gap between the two sections
+            'marginBottom': '10px'  # Margin at the bottom of the top section
+        },
+        children=[
+            # First Flexbox section (Left)
+            html.Div(
+                style={
+                    'flex': '1',  # Take up equal space
+                    'backgroundColor': '#f0f0f0',  # Light gray background
+                    'padding': '20px',  # Padding inside the section
+                    'display': 'flex',
+                    'flexDirection': 'column',
+                    'justifyContent': 'space-between',
+                    # 'alignItems': 'center'
+                },
+                children=[
+                    html.H2("PM2.5 vs Rainfall"),
+                    dcc.Graph(id="scatter-plot"),
+                ]
+            ),
+            
+            # Second Flexbox section (Right)
+            html.Div(
+                style={
+                    'flex': '1',  # Take up equal space
+                    'backgroundColor': '#f0f0f0',  # Slightly darker gray background
+                    'padding': '20px',  # Padding inside the section
+                    'display': 'flex',
+                    'justifyContent': 'space-between',
+                    # 'alignItems': 'center',
+                    'flexDirection': 'column',
+                },
+                children=[
+                    html.H2("Correlation Matrix"),
+                    dcc.Graph(id="corr-graph")
                 ]
             )
         ]
@@ -188,4 +234,67 @@ def update_line_plot(selected_location, selected_year, selected_feature):
         markers=True
     )
     fig.update_xaxes(categoryorder="array", categoryarray=list(month_names.values()))
+    return fig
+
+@callback(
+    Output("scatter-plot", "figure"),
+    [Input("station-dropdown", "value")]  # Replace with actual trigger, e.g., a dropdown or button if needed
+)
+def update_scatter(selected_station):  # `value` can be used if you have interactive elements.
+    # Create scatter plot using Plotly Express
+    filtered_df = df_aqi[
+        (df_aqi["location"] == selected_station)
+    ]
+    fig = px.scatter(
+        filtered_df,
+        x="rainfall",
+        y="pm25",
+        title="PM2.5 vs Rainfall",
+        labels={"rainfall": "Rainfall (mm)", "pm25": "PM2.5"},
+        template="plotly_white",
+        color="AQI_level",  # Optional: color by AQI level
+    )
+    return fig
+
+@callback(
+    Output("corr-graph", "figure"),
+    [Input("station-dropdown", "value")]  # Replace with actual trigger, if needed
+)
+def update_corr(selected_station):
+    # Compute correlation matrix
+    corr = df_aqi.drop(columns=['month', 'year']).select_dtypes(include=["float", "int"]).corr()
+
+    # Create heatmap using Plotly
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=corr.values,
+            x=corr.columns,
+            y=corr.columns,
+            colorscale="Viridis",
+            colorbar={"title": "Correlation"},
+            hoverongaps=False,
+        )
+    )
+    
+    # Add annotations for each cell
+    annotations = []
+    for i in range(len(corr)):
+        for j in range(len(corr.columns)):
+            annotations.append(
+                dict(
+                    x=corr.columns[j],
+                    y=corr.index[i],
+                    text=str(np.round(corr.values[i, j], 2)),
+                    showarrow=False,
+                    font=dict(size=10, color="black" if abs(corr.values[i, j]) < 0.7 else "white"),
+                )
+            )
+    fig.update_layout(
+        title="Correlation Matrix",
+        xaxis_title="Features",
+        yaxis_title="Features",
+        template="plotly_white",
+        annotations=annotations,
+    )
+    
     return fig
