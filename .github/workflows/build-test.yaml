@@ -78,4 +78,4 @@ jobs:
             # docker run -d -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/aqi_prediction:latest
 
             # OR if using Docker Compose (adjust paths if needed)
-            docker compose up
+            docker run -d -p 8050:8050 --name aqi_prediction_container ${{ secrets.DOCKERHUB_USERNAME }}/aqi_prediction:latest
