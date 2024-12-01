@@ -72,10 +72,10 @@ jobs:
 
             # (Optional) If you are using Docker Compose, stop and remove old containers
             # cd /code  # Navigate to the directory where docker-compose.yml is located (if you use it)
-            docker-compose down --remove-orphans
+            # docker compose down --remove-orphans
 
             # Run the Docker container directly if not using Docker Compose
             # docker run -d -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/aqi_prediction:latest
 
             # OR if using Docker Compose (adjust paths if needed)
-            docker-compose up -d
+            docker compose up -d
